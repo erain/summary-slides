@@ -1,8 +1,10 @@
 {
+  "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/slides/pi-agent-loop",
-      "destination": "/slides/pi-agent-loop/index.html"
+      "source": "/slides/:deck",
+      "destination": "/slides/:deck/index.html"
     }
   ]
 }
