@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summary Slides</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 3rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { font-size: 3rem; margin-bottom: 1rem; color: #60a5fa; border-bottom: 2px solid #334155; padding-bottom: 1rem; }
+        .subtitle { color: #94a3b8; font-size: 1.2rem; margin-bottom: 3rem; }
+        .slides-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 2rem; margin-top: 2rem; }
+        .slide-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 2rem; transition: transform 0.2s, border-color 0.2s; cursor: pointer; text-decoration: none; color: inherit; display: block; }
+        .slide-card:hover { transform: translateY(-4px); border-color: #3b82f6; }
+        .slide-card h2 { font-size: 1.5rem; color: #93c5fd; margin-bottom: 0.8rem; }
+        .slide-card p { color: #cbd5e1; line-height: 1.5; font-size: 1rem; }
+        .slide-card .meta { margin-top: 1rem; font-size: 0.9rem; color: #64748b; }
+        .badge { display: inline-block; background: #334155; padding: 0.3rem 0.8rem; border-radius: 4px; font-size: 0.85rem; margin-right: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Summary Slides</h1>
+        <p class="subtitle">Technical slide decks for learning and reference</p>
+        
+        <div class="slides-grid">
+            <a href="/slides/pi-agent-loop/" class="slide-card">
+                <h2>Pi Agent Loop Design</h2>
+                <p>Step-by-step walkthrough of the agent loop architecture in pi, designed for staff engineers new to agentic engineering.</p>
+                <div class="meta">
+                    <span class="badge">12 slides</span>
+                    <span class="badge">Agent Design</span>
+                </div>
+            </a>
+            
+            <!-- Future slide decks will appear here -->
+        </div>
+    </div>
+</body>
+</html>

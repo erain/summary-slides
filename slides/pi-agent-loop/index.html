@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Agent Loop Design</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; overflow: hidden; }
+        .slides { width: 100vw; height: 100vh; position: relative; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 3rem 6rem; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; overflow-y: auto; }
+        .slide.active { opacity: 1; pointer-events: all; }
+        .slide h1 { font-size: 3.5rem; margin-bottom: 2rem; color: #60a5fa; border-bottom: 2px solid #334155; padding-bottom: 1rem; }
+        .slide h2 { font-size: 2.5rem; margin-bottom: 1.5rem; color: #60a5fa; }
+        .slide h3 { font-size: 1.8rem; margin-bottom: 1rem; color: #93c5fd; }
+        .slide p { font-size: 1.3rem; line-height: 1.6; margin-bottom: 1.2rem; }
+        .slide ul { font-size: 1.3rem; line-height: 1.6; margin-left: 2rem; margin-bottom: 1.2rem; }
+        .slide li { margin-bottom: 0.5rem; }
+        .slide pre { background: #1e293b; padding: 1.5rem; border-radius: 8px; overflow-x: auto; margin: 1.5rem 0; font-size: 1.1rem; border: 1px solid #334155; }
+        .slide code { font-family: 'Cascadia Code', 'Fira Code', monospace; color: #fbbf24; }
+        .slide .diagram { font-family: 'Cascadia Code', 'Fira Code', monospace; white-space: pre; line-height: 1.4; margin: 1.5rem 0; color: #cbd5e1; background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; }
+        .nav { position: fixed; bottom: 2rem; right: 2rem; display: flex; gap: 1rem; }
+        .nav button { padding: 0.7rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600; transition: background 0.2s; }
+        .nav button:hover { background: #2563eb; }
+        .slide-counter { position: fixed; bottom: 2rem; left: 2rem; font-size: 1.1rem; color: #94a3b8; }
+        .note { color: #94a3b8; font-style: italic; margin-top: 2rem; font-size: 1.1rem; }
+        .highlight { color: #fbbf24; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="slides">
+        <!-- Slide 1: Title -->
+        <section class="slide active">
+            <h1>Pi Agent Loop Design</h1>
+            <p>Step-by-step walkthrough for staff engineers new to agentic engineering</p>
+            <div class="diagram" style="margin-top: 3rem;">
+  ____  _      _   
+ |  _ \(_) ___| | __
+ | |_) | |/ __| |/ /
+ |  __/| | (__|   < 
+ |_|   |_|\___|_|\_\
+            </div>
+            <p class="note">Press → arrow key or click "Next" to navigate</p>
+        </section>
+
+        <!-- Slide 2: What is an Agent Loop? -->
+        <section class="slide">
+            <h2>What is an Agent Loop?</h2>
+            <p>Core execution cycle enabling LLMs to solve tasks autonomously:</p>
+            <div class="diagram">
+┌─────────────────────────────────────────────────────┐
+│                    AGENT LOOP                        │
+│                                                      │
+│  Input → LLM → Tool Calls? → Execute Tools          │
+│       ↑                                      ↓       │
+│       └─────────── New Context ─────────────────────┘
+│                                                      │
+│  Repeat until task is complete or stop condition     │
+└─────────────────────────────────────────────────────┘
+            </div>
+            <p>Key characteristics:</p>
+            <ul>
+                <li>LLM generates responses with potential <span class="highlight">tool calls</span></li>
+                <li>Tools execute external actions (read files, run commands, API calls)</li>
+                <li>Tool results feed back into context for next LLM turn</li>
+                <li>Loop continues until LLM decides task is done</li>
+            </ul>
+        </section>
+
+        <!-- Slide 3: Pi Monorepo Context -->
+        <section class="slide">
+            <h2>Pi Monorepo Context</h2>
+            <p>Pi is a monorepo with 5 core packages:</p>
+            <pre>
+packages/
+├── ai           # Multi-provider LLM API (OpenAI, Anthropic, Google, etc.)
+├── <span class="highlight">agent</span>        # Agent runtime (this is where the loop lives)
+├── coding-agent # Interactive CLI (orchestrates agent runtime)
+├── tui          # Terminal UI for interactive mode
+└── web-ui       # Web components for chat interfaces
+            </pre>
+            <p>Agent loop implementation:</p>
+            <ul>
+                <li>Core file: <code>packages/agent/src/agent-loop.ts</code></li>
+                <li>Types: <code>packages/agent/src/types.ts</code></li>
+                <li>Entry points: <code>agentLoop()</code> and <code>agentLoopContinue()</code></li>
+            </ul>
+        </section>
+
+        <!-- Slide 4: Pi's Agent Loop Architecture -->
+        <section class="slide">
+            <h2>Pi's Agent Loop Architecture</h2>
+            <p>Key design decisions in <code>runLoop()</code>:</p>
+            <ul>
+                <li><span class="highlight">Two-level loop structure</span>:
+                    <ul>
+                        <li><strong>Outer loop</strong>: Handles follow-up user messages mid-execution</li>
+                        <li><strong>Inner loop</strong>: Processes tool calls and steering messages per turn</li>
+                    </ul>
+                </li>
+                <li><span class="highlight">Event-driven</span>: Emits events throughout execution for UI/monitoring</li>
+                <li><span class="highlight">Context management</span>: Maintains message history, system prompt, tools</li>
+                <li><span class="highlight">Streaming-first</span>: LLM responses streamed token-by-token</li>
+            </ul>
+            <p class="note">Events allow TUI/web-ui to update in real-time without polling</p>
+        </section>
+
+        <!-- Slide 5: Key Components -->
+        <section class="slide">
+            <h2>Key Components: AgentContext</h2>
+            <p>The <code>AgentContext</code> maintains state across turns:</p>
+            <pre>
+interface AgentContext {
+  // Message history (all roles: user, assistant, toolResult)
+  messages: AgentMessage[];
+  
+  // System prompt passed to LLM
+  systemPrompt: string;
+  
+  // Available tools for the agent
+  tools: AgentTool[];
+}
+            </pre>
+            <p>Important: Messages are stored as <code>AgentMessage</code> types internally, converted to LLM-specific <code>Message</code> types only at API boundary.</p>
+        </section>
+
+        <!-- Slide 6: Key Components: Events -->
+        <section class="slide">
+            <h2>Key Components: AgentEvent</h2>
+            <p>Events emitted during loop execution (partial list):</p>
+            <div class="diagram">
+Agent Lifecycle:
+  agent_start → agent_end
+
+Turn Lifecycle:
+  turn_start → turn_end
+
+Message Events:
+  message_start → message_update → message_end
+
+Tool Events:
+  tool_execution_start → tool_execution_update → tool_execution_end
+            </div>
+            <p>Event sink: <code>(event: AgentEvent) => Promise&lt;void&gt; | void</code></p>
+            <p class="note">TUI and web-ui subscribe to these events to render UI</p>
+        </section>
+
+        <!-- Slide 7: The Two-Level Loop -->
+        <section class="slide">
+            <h2>The Two-Level Loop Structure</h2>
+            <p>Simplified from <code>runLoop()</code> in <code>agent-loop.ts</code>:</p>
+            <pre>
+// Outer loop: handle follow-up messages
+while (true) {
+  let hasMoreToolCalls = true;
+  
+  // Inner loop: process tool calls per turn
+  while (hasMoreToolCalls || pendingMessages.length > 0) {
+    // 1. Process any pending steering messages
+    // 2. Stream assistant response from LLM
+    // 3. If tool calls: execute them (parallel/sequential)
+    // 4. Add tool results to context
+    // 5. Check stop conditions
+  }
+  
+  // Check for follow-up user messages
+  const followUp = getFollowUpMessages();
+  if (followUp.length > 0) { pendingMessages = followUp; continue; }
+  break; // No more work, exit loop
+}
+            </pre>
+        </section>
+
+        <!-- Slide 8: Context Flow Per Turn -->
+        <section class="slide">
+            <h2>Context Flow Per Turn</h2>
+            <div class="diagram">
+1. Start turn: Emit turn_start event
+   ↓
+2. Apply context transform (optional hook)
+   ↓
+3. Convert AgentMessage[] → LLM-compatible Message[]
+   ↓
+4. Stream LLM response (emit text/tool call events)
+   ↓
+5. If tool calls exist:
+   a. Execute tools (parallel or sequential)
+   b. Emit tool execution events
+   c. Add tool results to context
+   ↓
+6. Emit turn_end event
+   ↓
+7. Loop back to step 1 if more tool calls
+            </div>
+        </section>
+
+        <!-- Slide 9: Tool Execution -->
+        <section class="slide">
+            <h2>Tool Execution Modes</h2>
+            <p>Pi supports two execution modes:</p>
+            <ul>
+                <li><span class="highlight">Parallel</span> (default): Execute all tool calls concurrently</li>
+                <li><span class="highlight">Sequential</span>: Execute tool calls one by one</li>
+            </ul>
+            <p>Triggers for sequential mode:</p>
+            <ul>
+                <li>Global config: <code>toolExecution: "sequential"</code></li>
+                <li>Per-tool: <code>tool.executionMode === "sequential"</code></li>
+            </ul>
+            <p>Tool execution pipeline:</p>
+            <div class="diagram">
+prepareToolCall → validateArgs → executeTool → afterToolCall hook → finalize
+            </div>
+        </section>
+
+        <!-- Slide 10: Streaming & Real-time Updates -->
+        <section class="slide">
+            <h2>Streaming & Real-time Updates</h2>
+            <p>LLM responses are streamed token-by-token via <code>streamSimple()</code> from <code>packages/ai</code>:</p>
+            <ul>
+                <li>Text: <code>text_start</code> → <code>text_delta</code> → <code>text_end</code></li>
+                <li>Thinking: <code>thinking_start</code> → <code>thinking_delta</code> → <code>thinking_end</code></li>
+                <li>Tool calls: <code>toolcall_start</code> → <code>toolcall_delta</code> → <code>toolcall_end</code></li>
+            </ul>
+            <p>Partial messages updated in context as stream progresses:</p>
+            <pre>
+for await (const event of response) {
+  switch (event.type) {
+    case "text_delta":
+      partialMessage = event.partial;
+      context.messages[lastIndex] = partialMessage;
+      emit({ type: "message_update", ... });
+  }
+}
+            </pre>
+        </section>
+
+        <!-- Slide 11: Stop Conditions -->
+        <section class="slide">
+            <h2>Stop Conditions</h2>
+            <p>The loop stops when any of these conditions are met:</p>
+            <ul>
+                <li>LLM response has <code>stopReason: "error"</code> or <code>"aborted"</code></li>
+                <li>No tool calls in LLM response</li>
+                <li>All tool calls have <code>terminate: true</code></li>
+                <li><code>shouldStopAfterTurn</code> config hook returns <code>true</code></li>
+                <li>User sends interrupt signal (Ctrl+C)</li>
+            </ul>
+            <p>Follow-up messages: If user sends new messages while agent is running, they're queued and processed in next outer loop iteration.</p>
+        </section>
+
+        <!-- Slide 12: Next Steps -->
+        <section class="slide">
+            <h2>Next Steps (To Cover)</h2>
+            <p>Remaining topics for full understanding:</p>
+            <ul>
+                <li>Tool definition & argument validation (packages/agent types)</li>
+                <li>LLM provider abstraction (packages/ai stream functions)</li>
+                <li>Coding agent integration (packages/coding-agent orchestration)</li>
+                <li>Steering messages (user intervention mid-loop)</li>
+                <li>Error handling & abort signals</li>
+                <li>Context window management</li>
+            </ul>
+            <p class="note">This slide deck will be extended as we cover more topics</p>
+        </section>
+    </div>
+
+    <div class="slide-counter">1 / 12</div>
+    <div class="nav">
+        <button id="prev">← Prev</button>
+        <button id="next">Next →</button>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.querySelector('.slide-counter');
+        let currentSlide = 0;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+            counter.textContent = `${currentSlide + 1} / ${slides.length}`;
+        }
+
+        document.getElementById('next').addEventListener('click', () => showSlide(currentSlide + 1));
+        document.getElementById('prev').addEventListener('click', () => showSlide(currentSlide - 1));
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') showSlide(currentSlide + 1);
+            if (e.key === 'ArrowLeft') showSlide(currentSlide - 1);
+        });
+    </script>
+</body>
+</html>

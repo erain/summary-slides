@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/slides/pi-agent-loop",
+      "destination": "/slides/pi-agent-loop/index.html"
+    }
+  ]
+}
