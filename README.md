@@ -11,6 +11,8 @@ A collection of self-contained HTML slide decks for technical presentations, dep
 │   │   └── index.html
 │   └── [future-slides]/    # Add new slide decks here
 ├── vercel.json             # Vercel static deployment configuration
+├── skills/summary-slides/
+│   └── SKILL.md            # Portable agent skill for creating and publishing decks
 └── README.md
 ```
 
@@ -65,13 +67,38 @@ One-time setup:
 4. No build command is required.
 5. Output directory can remain the repository root.
 
-After setup, every push to `main` deploys automatically:
+After setup, merging a pull request into `main` deploys automatically. Prepare
+changes on a branch, validate locally, and have the author review and commit
+them before opening a pull request. Do not push directly to `main`.
 
-```bash
-git add <files>
-git commit -m "Add slide deck"
-git push origin main
+## Agent Skill
+
+The portable [Summary Slides skill](skills/summary-slides/SKILL.md) covers
+summarizing knowledge, building self-contained HTML decks, updating this
+site's catalog, validating, and publishing through the repository's Git flow.
+Once these files are deployed, its public URL is:
+
+<https://summary-slides.vercel.app/skills/summary-slides/SKILL.md>
+
+Give any coding agent that can fetch URLs and edit the repository this prompt:
+
+```text
+Read and follow https://summary-slides.vercel.app/skills/summary-slides/SKILL.md.
+Summarize <topic, repository, or session> as an HTML slide deck for <audience>.
+Prepare it in erain/summary-slides for review and publication.
 ```
+
+For an existing deck, replace the last two sentences with:
+
+```text
+Use this skill to prepare <path/to/deck.html> for publication in erain/summary-slides.
+```
+
+Fetching the skill supplies instructions for that session. For persistent
+discovery, copy the `skills/summary-slides/` directory into the skill location
+supported by your agent (for example, `~/.codex/skills/summary-slides/` or
+`~/.claude/skills/summary-slides/`). Commit, push, and merge permissions still
+follow the user's instructions; the skill does not grant them.
 
 ## Current Decks
 
