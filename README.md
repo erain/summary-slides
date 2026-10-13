@@ -103,6 +103,7 @@ follow the user's instructions; the skill does not grant them.
 ## Current Decks
 
 - `Pi Agent Loop Design`: `/slides/pi-agent-loop/`
+- `AX + Agent Substrate`: `/slides/ax-substrate/`
 
 ## License
 
