@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AX + Agent Substrate &mdash; Running AI Agents at Scale</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f172a;--panel:#1e293b;--line:#334155;--text:#e2e8f0;--muted:#94a3b8;--accent:#60a5fa;--accent2:#93c5fd;--gold:#fbbf24;--green:#34d399}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;line-height:1.5}
+.slides{width:100vw;height:100vh;height:100dvh;position:relative}
+.slide{position:absolute;top:0;left:0;width:100%;height:100%;padding:2.5rem 5rem 5rem;opacity:0;transition:opacity .25s ease;pointer-events:none;overflow-y:auto}
+.slide.active{opacity:1;pointer-events:all}
+@media (prefers-reduced-motion:reduce){.slide{transition:none}}
+.slide h1{font-size:2.6rem;margin-bottom:1.2rem;color:var(--accent);border-bottom:2px solid var(--line);padding-bottom:.8rem}
+.slide h2{font-size:2rem;margin-bottom:1rem;color:var(--accent)}
+.slide h3{font-size:1.35rem;margin:1.2rem 0 .5rem;color:var(--accent2)}
+.slide p,.slide li{font-size:1.15rem;line-height:1.6;margin-bottom:.7rem}
+.slide ul,.slide ol{margin-left:1.8rem;margin-bottom:1rem}
+.slide li{margin-bottom:.45rem}
+.slide pre{background:var(--panel);padding:1rem 1.2rem;border-radius:8px;overflow-x:auto;margin:1rem 0;font-size:.95rem;border:1px solid var(--line);line-height:1.5}
+.slide code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--gold);font-size:.92em}
+.slide pre code{color:var(--gold)}
+.kicker{color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-size:.95rem;margin-bottom:.4rem}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin:1rem 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1.1rem 1.2rem}
+.card h3{margin-top:0}
+.card p,.card li{font-size:1.02rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:1rem}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--accent2)}
+.note{color:var(--muted);font-style:italic;margin-top:1.2rem;font-size:1rem}
+.plain{color:var(--green);font-weight:600}
+.diagram{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem;margin:1rem 0;overflow-x:auto}
+.diagram svg{min-width:640px;width:100%;height:auto;display:block}
+.nav{position:fixed;bottom:1.2rem;right:1.5rem;display:flex;gap:.7rem;z-index:10}
+.nav button{padding:.65rem 1.3rem;background:#3b82f6;color:#fff;border:2px solid transparent;border-radius:6px;cursor:pointer;font-size:1rem;font-weight:600}
+.nav button:hover{background:#2563eb}
+.nav button:disabled{opacity:.35;cursor:default}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.slide-counter{position:fixed;bottom:1.5rem;left:1.5rem;font-size:1rem;color:var(--muted);z-index:10}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:760px){.slide{padding:1.5rem 1.2rem 5rem}.slide h1{font-size:1.8rem}.slide h2{font-size:1.45rem}.slide p,.slide li{font-size:1rem}.cols{grid-template-columns:1fr}}
+@media print{
+body{overflow:visible;background:#fff;color:#000}
+.slides{height:auto}
+.slide{position:static;opacity:1 !important;pointer-events:all;height:auto;overflow:visible;padding:1.5rem;border-bottom:2px solid #999;page-break-inside:avoid}
+.slide h1,.slide h2{color:#1e40af}
+.nav,.slide-counter{display:none}
+.slide pre,.card,.diagram{background:#f1f5f9;border-color:#999}
+.slide code{color:#92400e}
+}
+</style>
+</head>
+<body>
+<div class="slides">
+<!-- 1: Title -->
+<section class="slide active" aria-label="Title slide">
+<p class="kicker">google/ax &bull; Agent Substrate &bull; September 2026</p>
+<h1>AX + Agent Substrate:<br>Running AI Agents at Scale</h1>
+<p>How one team&rsquo;s control panel (<span class="plain">AX</span>) and its fleet of locked boxes (<span class="plain">Agent Substrate</span>) split the work of running thousands of AI workers &mdash; explained for staff engineers and directors, no buzzwords required.</p>
+<div class="cols">
+<div class="card"><h3>You will learn</h3><ul><li>Why AI workers need their own kind of platform</li><li>What you declare vs. what the platform runs</li><li>What happens, step by step, when you submit work</li><li>Where the costs and risks actually sit</li></ul></div>
+<div class="card"><h3>How to read this deck</h3><ul><li>Plain words first, real system names in <code>code</code></li><li>One running example: a task called <code>task123</code></li><li>Every claim traces to repo files &mdash; see Sources</li><li>Press &rarr; or Next to walk through</li></ul></div>
+</div>
+<p class="note">Basis: github.com/google/ax at commit ac23328 (26 Sep 2026). AX is pre-release and changing fast.</p>
+</section>
+<!-- 2: Why agents need a platform -->
+<section class="slide" aria-label="Why AI workers need a platform">
+<p class="kicker">The problem &mdash; 1/2</p>
+<h2>AI Workers Are a Weird New Workload</h2>
+<p>An &ldquo;agent&rdquo; here just means <strong>a program that calls an AI model repeatedly to do multi-step work</strong>: write code, run tests, retry, look things up. That shape breaks the two molds platforms were built for:</p>
+<div class="cols">
+<div class="card"><h3>Not a web service</h3><p>A web server is stateless and interchangeable. An agent <strong>accumulates state</strong> &mdash; half-edited files, downloaded tools, a memory of what it tried. Kill it carelessly and the work evaporates.</p></div>
+<div class="card"><h3>Not a batch job</h3><p>A batch job runs to completion and exits. An agent <strong>lingers</strong>: it waits on model answers, wanders down blind alleys, and can <strong>spend real money in a loop</strong> if nobody watches it.</p></div>
+</div>
+<h3>So the platform must do four things</h3>
+<ul><li><strong>Isolate</strong> &mdash; untrusted, machine-written code runs in a locked box, with CPU/memory caps.</li><li><strong>Pre-wire</strong> &mdash; every worker should start with its code, tools, and keys already in place.</li><li><strong>Pause and resume</strong> &mdash; shelve an idle worker and wake it later, files intact.</li><li><strong>Inspect</strong> &mdash; open the box and look over the worker&rsquo;s shoulder while it runs.</li></ul>
+</section>
+<!-- 3: Two layers -->
+<section class="slide" aria-label="AX versus Substrate">
+<p class="kicker">The answer in two layers &mdash; 2/2</p>
+<h2>Two Layers: the Form and the Fleet</h2>
+<p>Think of eating at a restaurant. <strong>AX is the order ticket</strong> &mdash; what you want, written down. <strong>Agent Substrate is the kitchen</strong> &mdash; the stoves, chefs, and pantry that actually cook it.</p>
+<div class="diagram" role="img" aria-label="Diagram: user writes a YAML ticket, AX control server records it in Redis and asks Substrate to run a locked box">
+<svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" font-family="monospace" font-size="13">
+<rect x="10" y="60" width="150" height="110" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2"/><text x="85" y="95" fill="#e2e8f0" text-anchor="middle" font-weight="bold">You + ax CLI</text><text x="85" y="115" fill="#94a3b8" text-anchor="middle">apply, get,</text><text x="85" y="133" fill="#94a3b8" text-anchor="middle">watch, ssh</text><text x="85" y="151" fill="#94a3b8" text-anchor="middle">write a ticket (YAML)</text>
+<rect x="200" y="30" width="190" height="180" rx="10" fill="#3b2f1a" stroke="#fbbf24" stroke-width="2"/><text x="295" y="55" fill="#fbbf24" text-anchor="middle" font-weight="bold">AX (the ticket desk)</text><text x="295" y="78" fill="#e2e8f0" text-anchor="middle">ax-server: checks the</text><text x="295" y="96" fill="#e2e8f0" text-anchor="middle">ticket, files a copy</text><text x="295" y="118" fill="#94a3b8" text-anchor="middle">Memory of tickets:</text><text x="295" y="136" fill="#94a3b8" text-anchor="middle">Redis (fast list)</text><text x="295" y="158" fill="#94a3b8" text-anchor="middle">Locks: one editor</text><text x="295" y="176" fill="#94a3b8" text-anchor="middle">per ticket, no fights</text><text x="295" y="196" fill="#94a3b8" text-anchor="middle">Runner: preps box,</text>
+<rect x="430" y="30" width="320" height="180" rx="10" fill="#12372a" stroke="#34d399" stroke-width="2"/><text x="590" y="55" fill="#34d399" text-anchor="middle" font-weight="bold">Substrate (the kitchen)</text><text x="590" y="78" fill="#e2e8f0" text-anchor="middle">Atespace = one kitchen zone</text><text x="590" y="96" fill="#e2e8f0" text-anchor="middle">Actor = one locked box + chef</text><text x="590" y="114" fill="#e2e8f0" text-anchor="middle">Worker = the stove it sits on</text><text x="590" y="136" fill="#94a3b8" text-anchor="middle">atenet router = receptionist</text><text x="590" y="154" fill="#94a3b8" text-anchor="middle">Snapshots = doggy bag</text><text x="590" y="176" fill="#94a3b8" text-anchor="middle">(packs up the box on pause)</text><text x="590" y="196" fill="#94a3b8" text-anchor="middle">gVisor walls = locked box</text>
+<line x1="160" y1="115" x2="200" y2="115" stroke="#94a3b8" stroke-width="2" marker-end="url(#a)"/>
+<line x1="390" y1="115" x2="430" y2="115" stroke="#94a3b8" stroke-width="2" marker-end="url(#a)"/>
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/></marker></defs>
+</svg>
+</div>
+<p><strong>Why two layers?</strong> Storing millions of short-lived tickets inside Kubernetes itself would choke its database (etcd: single-digit GB, write bottlenecks). So AX keeps its ticket list in <strong>Redis</strong> and rents locked boxes from Substrate. <span class="note">Sources: DESIGN.md:5, README.md:13, deploy/ax-server.yaml.</span></p>
+</section>
+<!-- 4: What you declare -->
+<section class="slide" aria-label="What you declare">
+<p class="kicker">What you declare &mdash; 3/4</p>
+<h2>You Fill In Three Forms</h2>
+<p>Everything is one YAML file with up to three documents. Plain reading of each:</p>
+<table>
+<tr><th>Form (real name)</th><th>Plain meaning</th><th>Example from <code>examples/task.yaml</code></th></tr>
+<tr><td><code>Task</code></td><td><strong>One unit of work in one locked box.</strong> Which image, which command, how much CPU/RAM, which folders it needs.</td><td><code>task123</code>: run tests, 0.5&ndash;2 CPUs, 1&ndash;4 GB RAM, needs <code>default-workspace</code>.</td></tr>
+<tr><td><code>Workspace</code></td><td><strong>The starting kit, packed once, reused everywhere.</strong> Code to clone, tool servers to call, skill files, instructions.</td><td><code>default-workspace</code>: clone <code>chalk/chalk.git</code>, reach the <code>git-tools</code> tool server, load nodejs skills.</td></tr>
+<tr><td><code>Model</code></td><td><strong>Which AI brain, and whose key pays for it.</strong> Provider + model name; the password lives in a Kubernetes secret, not in your file.</td><td><code>default-model</code>: Google&rsquo;s <code>gemini-3.8-flash</code>, key from <code>gemini-api-secret</code>.</td></tr>
+</table>
+<p>Plus a shared folder label: an <strong>atespace</strong> (say <code>default</code>) is just <strong>a namespace so teams don&rsquo;t collide</strong> &mdash; like a kitchen zone. <span class="note">Sources: docs/concepts.md, docs/manifests.md, examples/task.yaml.</span></p>
+</section>
+<!-- 5: Lifecycle steps 1-3 -->
+<section class="slide" aria-label="Lifecycle part 1">
+<p class="kicker">What happens when you hit enter &mdash; 4/6</p>
+<h2><code>ax apply</code>: From Ticket to Locked Box (1&ndash;3)</h2>
+<pre><code>ax apply -f task.yaml   # file your three forms
+ax watch task task123   # watch the status line change
+ax ssh task123 -- ls /workspace   # peek inside the box</code></pre>
+<ol>
+<li><strong>Desk checks the ticket.</strong> <code>ax-server</code> validates names (lowercase, &le;63 chars &mdash; they become Substrate names), fills in the atespace <code>default</code>, saves a copy in Redis, and takes a per-task lock so two edits can&rsquo;t collide. <span class="note">server.go, types.go.</span></li>
+<li><strong>Desk reserves a kitchen zone.</strong> The reconciler calls <code>EnsureAtespace(default)</code> &mdash; create it if missing, shrug if it exists. <span class="note">reconciler.go: Reconcile.</span></li>
+<li><strong>Desk picks a recipe card.</strong> It builds an <code>ActorTemplate</code> named like <code>task123-tmpl-a1b2c3d4</code> &mdash; the short hash covers the container image plus environment, so any spec change mints a new card and old revisions sit side by side. The card always says: start <code>/usr/local/bin/ax-task-runner</code>, mount a durable folder at <code>/workspace</code>, answer health checks on port 80. <span class="note">substrate/client.go: BuildActorTemplate; reconciler.go: taskTemplateName.</span></li>
+</ol>
+</section>
+<!-- 6: Lifecycle steps 4-6 -->
+<section class="slide" aria-label="Lifecycle part 2">
+<p class="kicker">What happens when you hit enter &mdash; 5/6</p>
+<h2>Ticket to Locked Box, continued (4&ndash;6)</h2>
+<ol start="4">
+<li><strong>Kitchen assigns a box, named after your ticket.</strong> <code>EnsureActor(default, task123)</code> creates one box per task &mdash; actor name always equals task name, which is also how network requests find it later. Already exists? Reuse it. Crashed? Roll it back to its last good snapshot. Half-deleted? Wait and retry. <span class="note">substrate/client.go: EnsureActor.</span></li>
+<li><strong>The box phones home when its kit is packed.</strong> AX polls <code>GET /readyz</code> on the box (up to ~15 s): <code>503</code> = still cloning code, <code>200</code> = ready. Then it flips two flags you can watch: <code>WorkspaceReady</code> (kit packed, stays true) and <code>Ready</code> (kit packed AND running &mdash; the one to wait on). <span class="note">reconciler.go: waitForWorkspaceReady; metadata/server.go.</span></li>
+<li><strong>You watch and visit.</strong> <code>ax watch</code> streams those flag changes; <code>ax ssh</code> (needs <code>debug: true</code>) runs commands inside the box via the router. Deleting the ticket deletes the box first, then its recipe cards, and only then removes the record &mdash; <code>ax delete</code> waits for all of it. <span class="note">reconciler.go: ReconcileDelete; docs/networking.md.</span></li>
+</ol>
+<div class="card"><h3>The one-line version</h3><p>Ticket in &rarr; zone reserved &rarr; recipe card picked &rarr; locked box opened &rarr; kit packed &rarr; flags flip &rarr; you peek in. Every later feature (pause, resume, delete) is a variation on this path.</p></div>
+</section>
+<!-- 7: Inside the box -->
+<section class="slide" aria-label="Inside the sandbox">
+<p class="kicker">Inside the locked box &mdash; 6/8</p>
+<h2>Morning Routine of a Locked Box</h2>
+<p>The box never runs your command directly. Its manager (<code>ax-task-runner</code>, process #1) follows the same morning routine every boot. <span class="note">runner/runner.go: Run; docs/sandbox.md.</span></p>
+<div class="cols">
+<div class="card"><h3>1. Wake up &amp; open the desk</h3><p>Read the ticket from <code>AX_TASK_YAML</code> and the kits from <code>AX_WORKSPACES_YAML</code>. Open a small info desk on port 80: <code>/healthz</code> (alive?), <code>/readyz</code> (kit packed?), <code>/metadata/.../task</code> (what am I?).</p></div>
+<div class="card"><h3>2. Pack the kit &mdash; first morning only</h3><p>In binding order: clone each Git repo, lay out skill files, write tool-server addresses, and if the binding carries a plain-words <code>goal</code> (&ldquo;install deps, run tests&rdquo;), hand it to a helper agent (up to 10 min). Stamp a marker file under <code>/ax</code> so tomorrow&rsquo;s boot skips the packing.</p></div>
+</div>
+<div class="cols">
+<div class="card"><h3>3. Start the day&rsquo;s work, supervised</h3><p>Launch <code>spec.command</code> as a supervised child in the first kit&rsquo;s folder, with <code>AX_METADATA_URL</code> plus your env vars. If the worker finishes, the manager stays awake so you can still inspect the box.</p></div>
+<div class="card"><h3>Why directors should care</h3><p><strong>First boot is slow, second boot is fast</strong> (packing skipped). The marker files are the whole trick &mdash; lose them and every resume re-clones and wipes state. Custom images must keep the same routine: <code>/usr/local/bin/ax-task-runner</code>, port 80, pack-once, supervise. <span class="note">docs/runner.md checklist.</span></p></div>
+</div>
+</section>
+<!-- 8: Pause and inspect -->
+<section class="slide" aria-label="Pause and inspect">
+<p class="kicker">Pause, wake, and peek &mdash; 7/8</p>
+<h2>Pause It, Wake It, Peek Inside</h2>
+<div class="cols">
+<div class="card"><h3>Shelve it: <code>ax suspend</code></h3><p>Kitchen photographs the <code>/workspace</code> folder into a snapshot bucket, frees the stove (CPU/RAM), and marks the ticket <code>Suspended</code> with <code>Ready=False (TaskSuspended)</code>. You stop paying for an idle box but keep everything it made.</p></div>
+<div class="card"><h3>Wake it: <code>ax resume</code></h3><p>Kitchen seats a fresh box at a free stove and unpacks the photo. Same files, brand-new processes &mdash; that&rsquo;s why packing is skipped and the manager restarts the command. Status flips back to <code>Running</code>. <span class="note">substrate/client.go: SuspendActor/ResumeActor.</span></p></div>
+</div>
+<h3>Peek inside: one receptionist for every box</h3>
+<p>Boxes get no private address. Every request goes to one receptionist &mdash; the <code>atenet-router</code> &mdash; carrying a name tag: header <code>ate-target-actor: default/task123</code>. The receptionist finds the stove, wakes the box first if it was shelved, and forwards the call. <code>ax ssh</code> is just &ldquo;run this command&rdquo; sent through the receptionist to helper services inside the box &mdash; which is why it only works when the ticket says <code>debug: true</code>. <span class="note">docs/networking.md; guest/client.go: DialTarget.</span></p>
+<pre><code>curl -H "ate-target-actor: default/task123" http://atenet-router.ate-system/readyz</code></pre>
+</section>
+<!-- 9: Tradeoffs -->
+<section class="slide" aria-label="Tradeoffs">
+<p class="kicker">Honest tradeoffs &mdash; 8/9</p>
+<h2>What This Buys You, and What It Costs</h2>
+<table>
+<tr><th>Decision</th><th>What you gain (plain)</th><th>What you pay (plain)</th></tr>
+<tr><td>Tickets in <strong>Redis</strong>, not Kubernetes</td><td>Millions of short-lived tasks without choking the cluster database.</td><td>Second source of truth to back up, secure, and keep consistent with the kitchen.</td></tr>
+<tr><td><strong>One box per ticket</strong>, strong walls (gVisor)</td><td>Machine-written code can&rsquo;t snoop on neighbors; CPU/RAM caps hold.</td><td>More boxes = more overhead than threads in one process. Density depends on pausing the idle.</td></tr>
+<tr><td><strong>Pack the kit once</strong>, stamp a marker</td><td>Fast resumes; reproducible starting kits across teams.</td><td>First boot is slow (clones + up-to-10-min helper agent); a lost marker means lost work.</td></tr>
+<tr><td>SSH-style peeking <strong>off by default</strong></td><td>No silent backdoor into every box; you opt in per ticket.</td><td>Debugging a non-debug box means redeploying it.</td></tr>
+<tr><td>Passwords in <strong>Kubernetes secrets</strong>, referenced by name</td><td>Rotate a key with one <code>apply</code>; it never sits in the ticket file.</td><td>Someone must still guard those secrets and their access list. (<code>ax-server</code> needs get/list/watch.)</td></tr>
+</table>
+<p><strong>Where the roadmap admits weakness:</strong> setup and running share one box today (setup keys can see runtime); idle detection is manual (<code>suspend</code>); no per-task identity or spending guardrails yet. <span class="note">docs/roadmap.md: actor split, least privilege, auto-suspend, SPIFFE, budgets, telemetry.</span></p>
+</section>
+<!-- 10: Takeaways + sources -->
+<section class="slide" aria-label="Takeaways and sources">
+<p class="kicker">Takeaways &mdash; 9/9</p>
+<h2>Takeaways for Your Next Design Review</h2>
+<ol>
+<li><strong>Say &ldquo;ticket and kitchen,&rdquo; not &ldquo;orchestrator and substrate.&rdquo;</strong> AX files and tracks the request; Substrate supplies the locked box, the stove, and the pantry. The seam is the actor name = task name.</li>
+<li><strong>Budget for two clocks:</strong> slow first boot (kit packing) vs. fast resume (snapshot unpack). Size timeouts and UX around that gap.</li>
+<li><strong>Treat pause as your cost lever:</strong> every idle-but-running box burns a stove. Suspend aggressively until auto-suspend lands.</li>
+<li><strong>Default-deny peeking:</strong> leave <code>debug</code> off in production; enable it only where a human is actively watching.</li>
+<li><strong>Remember what&rsquo;s missing:</strong> no spending caps, no per-box ID cards (SPIFFE), no automatic audit trail yet &mdash; plan compensating controls. AX is pre-release; pin the commit you evaluated.</li>
+</ol>
+<h3>Sources (all in github.com/google/ax @ ac23328, 26 Sep 2026)</h3>
+<p style="font-size:.95rem">Architecture &amp; split: <code>DESIGN.md</code>, <code>README.md</code>, <code>deploy/ax-server.yaml</code> &bull; Forms: <code>docs/concepts.md</code>, <code>docs/manifests.md</code>, <code>examples/task.yaml</code> &bull; Lifecycle: <code>internal/server/server.go</code>, <code>internal/controller/reconciler.go</code>, <code>internal/substrate/client.go</code>, <code>pkg/apis/v1alpha1/types.go</code> &bull; Inside the box: <code>runner/runner.go</code>, <code>internal/metadata/server.go</code>, <code>internal/workspace/setup.go</code>, <code>docs/sandbox.md</code>, <code>docs/runner.md</code> &bull; Reach it: <code>docs/networking.md</code>, <code>internal/guest/client.go</code> &bull; Gaps: <code>docs/roadmap.md</code> &bull; Deck method: <code>summary-slides.vercel.app/skills/summary-slides/SKILL.md</code></p>
+<p class="note">No credentials, private logs, or non-public code are included in this deck. Jargon check: atespace = shared folder label / kitchen zone; actor = one locked box; template = recipe card; worker = stove; snapshot = packed-up photo of the box; atenet router = receptionist; gVisor = the lock on the box.</p>
+</section>
+</div>
+<div class="slide-counter" role="status" aria-live="polite">1 / 10</div>
+<div class="nav">
+<button id="prev" type="button">&larr; Prev</button>
+<button id="next" type="button">Next &rarr;</button>
+</div>
+<script>
+(function(){
+var slides=document.querySelectorAll('.slide');
+var counter=document.querySelector('.slide-counter');
+var prev=document.getElementById('prev');
+var next=document.getElementById('next');
+var current=0;
+function show(n){
+slides[current].classList.remove('active');
+current=(n+slides.length)%slides.length;
+slides[current].classList.add('active');
+slides[current].scrollTop=0;
+counter.textContent=(current+1)+' / '+slides.length;
+prev.disabled=(current===0);
+next.disabled=(current===slides.length-1);
+try{slides[current].setAttribute('tabindex','-1');slides[current].focus({preventScroll:true});}catch(e){}
+}
+prev.addEventListener('click',function(){show(current-1);});
+next.addEventListener('click',function(){show(current+1);});
+document.addEventListener('keydown',function(e){
+var t=e.target;
+if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
+if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();show(current+1);}
+else if(e.key==='ArrowLeft'){e.preventDefault();show(current-1);}
+else if(e.key==='Home'){e.preventDefault();show(0);}
+else if(e.key==='End'){e.preventDefault();show(slides.length-1);}
+});
+show(0);
+})();
+</script>
+</body>
+</html>
